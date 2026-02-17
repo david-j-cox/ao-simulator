@@ -6,6 +6,10 @@ A web-based research tool for behavior scientists to configure and run simulatio
 
 AO Simulator models how artificial organisms allocate behavior across response options when exposed to reinforcement contingencies. It supports three established behavioral models and two experimental environments, enabling researchers to compare algorithmic predictions against known behavioral phenomena like the matching law, rate-dependent responding, and spatial foraging patterns.
 
+### Cumulative Record Chart
+
+Every simulation produces a cumulative record — the standard behavior-analytic visualization of responding over time. For two-choice environments, two lines show cumulative responses on each alternative; for grid environments, a single line tracks cumulative lever presses. In multi-condition experiments, vertical dashed lines mark phase transitions so you can see how behavior changes when contingencies shift.
+
 ### Environments
 
 - **Two-Choice Chamber** — A concurrent operant arrangement with two response options (A and B), each associated with its own reinforcement schedule. Models standard concurrent VI-VI and ratio schedule preparations.
@@ -68,6 +72,8 @@ ao-simulator/
             ├── ScheduleConfig.jsx
             ├── GridConfig.jsx
             ├── AlgorithmParams.jsx
+            ├── ConditionEditor.jsx     # Multi-condition phase editor
+            ├── CumulativeRecordChart.jsx  # Recharts cumulative record
             └── GridVisualization.jsx   # Visit-frequency heatmap
 ```
 
@@ -126,11 +132,65 @@ All simulation endpoints accept a POST with a JSON configuration body.
 }
 ```
 
+### Multi-Condition Experiments
+
+To run a multi-phase experiment (e.g., baseline then extinction, or a resurgence procedure), use the `conditions` array instead of top-level schedule fields. Each condition specifies its own schedules and step count. The agent is **not** reset between conditions, so learned behavior carries over across phases.
+
+```json
+{
+  "environment": "two_choice",
+  "algorithm": "etbd",
+  "max_steps": 1000,
+  "seed": 42,
+  "etbd_params": {
+    "population_size": 100,
+    "mutation_rate": 0.1,
+    "fitness_decay": 0.95
+  },
+  "conditions": [
+    {
+      "label": "Baseline",
+      "max_steps": 3000,
+      "schedule_a": { "type": "VI", "value": 30 },
+      "schedule_b": { "type": "VI", "value": 60 }
+    },
+    {
+      "label": "Extinction",
+      "max_steps": 3000,
+      "schedule_a": { "type": "VI", "value": 10000 },
+      "schedule_b": { "type": "VI", "value": 10000 }
+    }
+  ]
+}
+```
+
+In the UI, check the **Multi-condition experiment** checkbox on the configuration page to define conditions interactively. See the [API Reference](docs/api-reference.md) for the full schema.
+
 ## Data Export
 
-**CSV columns:** `step`, `state`, `action`, `reinforced`, `schedule_id`
+**CSV columns:** `step`, `state`, `action`, `reinforced`, `schedule_id`, `condition`
 
-**JSON structure:** Full nested object with `config` (echo of parameters), `summary` (aggregate stats, action counts), and `steps` (per-step records).
+**JSON structure:** Full nested object with `config` (echo of parameters), `summary` (aggregate stats, action counts), `steps` (per-step records), and `condition_summaries` (per-condition breakdowns).
+
+## Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [Architecture](docs/architecture.md) — System overview, backend/frontend structure, interfaces, data flow
+- [Environments](docs/environments.md) — Reinforcement schedules, Two-Choice Chamber, Grid Chamber
+- [Algorithms](docs/algorithms.md) — Q-Learning, ETBD, and MPR theory, parameters, and expected behavior
+- [API Reference](docs/api-reference.md) — Endpoints, request/response schemas, usage examples
+- [User Guide](docs/user-guide.md) — Getting started, interface walkthrough, demo experiments
+
+## Roadmap
+
+See [OUTSTANDING.txt](OUTSTANDING.txt) for the full list of planned work, including:
+- Infrastructure (Docker, CI/CD, dependency pinning)
+- Testing (backend unit tests, frontend tests, e2e)
+- New algorithms (Rescorla-Wagner, Actor-Critic, Linear Operator)
+- New environments (delayed reinforcement, multiple schedules, progressive ratio)
+- Data analysis features (matching law fits, rate calculations, IRT distributions)
+- Frontend enhancements (response rate chart, comparison mode, parameter sweeps)
 
 ## References
 

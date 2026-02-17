@@ -47,7 +47,8 @@ Last updated: 2026-02-17
 [ ] Rescorla-Wagner model (classical conditioning / associative learning)
 [ ] Actor-Critic (reinforcement learning with separate policy and value)
 [ ] Linear Operator Model (Bush & Mosteller stimulus-response learning)
-[ ] Identify and document the agent base class interface for contributors
+[x] Identify and document the agent base class interface for contributors
+    -> docs/architecture.md (Agent Interface section)
 
 
 === NEW ENVIRONMENTS ===
@@ -96,18 +97,25 @@ Last updated: 2026-02-17
 
 === DOCUMENTATION ===
 
-[ ] Architecture doc explaining backend/frontend interaction
-[ ] Algorithm documentation (theory, parameters, expected behavior)
-[ ] Environment documentation (state spaces, action spaces, reinforcement mechanics)
-[ ] API reference (auto-generated from FastAPI /docs, but also static docs)
-[ ] User guide with example experiments
+[x] Architecture doc explaining backend/frontend interaction
+    -> docs/architecture.md
+[x] Algorithm documentation (theory, parameters, expected behavior)
+    -> docs/algorithms.md
+[x] Environment documentation (state spaces, action spaces, reinforcement mechanics)
+    -> docs/environments.md
+[x] API reference (auto-generated from FastAPI /docs, but also static docs)
+    -> docs/api-reference.md
+[x] User guide with example experiments
+    -> docs/user-guide.md
     - Matching law demonstration
     - Behavioral momentum demonstration
     - Resurgence demonstration
-[ ] Update README with:
+    - Grid exploration demonstration
+[x] Update README with:
     - Multi-condition experiment instructions
     - Cumulative record chart description
     - Roadmap section linking to this file
+    - Documentation section linking to all docs/ files
 
 
 === KNOWN ISSUES ===
