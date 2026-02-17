@@ -1,12 +1,15 @@
 import { downloadCSV, downloadJSON } from '../api/client';
 import GridVisualization from '../components/GridVisualization';
+import CumulativeRecordChart from '../components/CumulativeRecordChart';
 
 export default function ResultsPage({ data, onBack }) {
   const { result, request } = data;
-  const { summary } = result;
+  const { summary, condition_summaries } = result;
 
   const handleCSV = () => downloadCSV(request);
   const handleJSON = () => downloadJSON(request);
+
+  const hasMultipleConditions = condition_summaries && condition_summaries.length > 1;
 
   return (
     <div className="results-page">
@@ -42,6 +45,48 @@ export default function ResultsPage({ data, onBack }) {
           </tbody>
         </table>
       </div>
+
+      <CumulativeRecordChart
+        steps={result.steps}
+        conditionSummaries={condition_summaries}
+        environment={request.environment}
+      />
+
+      {hasMultipleConditions && (
+        <div className="condition-breakdown">
+          <h3>Per-Condition Breakdown</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Label</th>
+                <th>Steps</th>
+                <th>Reinforcements</th>
+                <th>Rate</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {condition_summaries.map((cs) => (
+                <tr key={cs.condition}>
+                  <td>{cs.condition}</td>
+                  <td>{cs.label}</td>
+                  <td>{cs.total_steps}</td>
+                  <td>{cs.total_reinforcements}</td>
+                  <td>{(cs.reinforcement_rate * 100).toFixed(2)}%</td>
+                  <td>
+                    {Object.entries(cs.action_counts).map(([action, count]) => (
+                      <span key={action} className="action-count-chip">
+                        {action}: {count}
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {summary.visit_counts && (
         <GridVisualization

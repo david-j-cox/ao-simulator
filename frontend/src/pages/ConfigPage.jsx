@@ -4,6 +4,7 @@ import AlgorithmSelector from '../components/AlgorithmSelector';
 import ScheduleConfig from '../components/ScheduleConfig';
 import GridConfig from '../components/GridConfig';
 import AlgorithmParams from '../components/AlgorithmParams';
+import ConditionEditor, { createDefaultCondition } from '../components/ConditionEditor';
 import { runSimulation } from '../api/client';
 
 const DEFAULT_Q = { alpha: 0.1, gamma: 0.9, epsilon: 0.1, history_window: 3 };
@@ -26,6 +27,9 @@ export default function ConfigPage({ onResults }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [multiCondition, setMultiCondition] = useState(false);
+  const [conditions, setConditions] = useState([]);
+
   const getAlgorithmParams = () => {
     if (algorithm === 'q_learning') return qParams;
     if (algorithm === 'etbd') return etbdParams;
@@ -38,6 +42,21 @@ export default function ConfigPage({ onResults }) {
     else setMprParams(params);
   };
 
+  const handleMultiConditionToggle = (checked) => {
+    setMultiCondition(checked);
+    if (checked && conditions.length === 0) {
+      // Seed initial condition from current schedule/max_steps values
+      const initial = { label: 'Condition 1', max_steps: maxSteps };
+      if (environment === 'two_choice') {
+        initial.schedule_a = { ...scheduleA };
+        initial.schedule_b = { ...scheduleB };
+      } else {
+        initial.schedule = { ...schedule };
+      }
+      setConditions([initial]);
+    }
+  };
+
   const buildRequest = () => {
     const req = {
       environment,
@@ -46,11 +65,19 @@ export default function ConfigPage({ onResults }) {
     };
     if (seed !== '') req.seed = parseInt(seed);
 
-    if (environment === 'two_choice') {
-      req.schedule_a = scheduleA;
-      req.schedule_b = scheduleB;
+    if (multiCondition && conditions.length > 0) {
+      req.conditions = conditions;
     } else {
-      req.schedule = schedule;
+      if (environment === 'two_choice') {
+        req.schedule_a = scheduleA;
+        req.schedule_b = scheduleB;
+      } else {
+        req.schedule = schedule;
+        req.grid_config = gridConfig;
+      }
+    }
+
+    if (environment === 'grid_chamber') {
       req.grid_config = gridConfig;
     }
 
@@ -83,15 +110,36 @@ export default function ConfigPage({ onResults }) {
       <EnvironmentSelector value={environment} onChange={setEnvironment} />
       <AlgorithmSelector value={algorithm} onChange={setAlgorithm} />
 
-      <ScheduleConfig
-        environment={environment}
-        scheduleA={scheduleA}
-        scheduleB={scheduleB}
-        schedule={schedule}
-        onChangeA={setScheduleA}
-        onChangeB={setScheduleB}
-        onChange={setSchedule}
-      />
+      <div className="config-section">
+        <label className="multi-condition-toggle">
+          <input
+            type="checkbox"
+            checked={multiCondition}
+            onChange={(e) => handleMultiConditionToggle(e.target.checked)}
+          />
+          Multi-condition experiment
+        </label>
+      </div>
+
+      {multiCondition ? (
+        <ConditionEditor
+          conditions={conditions}
+          environment={environment}
+          onChange={setConditions}
+        />
+      ) : (
+        <>
+          <ScheduleConfig
+            environment={environment}
+            scheduleA={scheduleA}
+            scheduleB={scheduleB}
+            schedule={schedule}
+            onChangeA={setScheduleA}
+            onChangeB={setScheduleB}
+            onChange={setSchedule}
+          />
+        </>
+      )}
 
       {environment === 'grid_chamber' && (
         <GridConfig config={gridConfig} onChange={setGridConfig} />
@@ -106,7 +154,9 @@ export default function ConfigPage({ onResults }) {
       <div className="config-section">
         <h3>Simulation Settings</h3>
         <div className="param-grid">
-          <label>Max Steps <input type="number" min="1" max="100000" value={maxSteps} onChange={(e) => setMaxSteps(parseInt(e.target.value) || 1000)} /></label>
+          {!multiCondition && (
+            <label>Max Steps <input type="number" min="1" max="100000" value={maxSteps} onChange={(e) => setMaxSteps(parseInt(e.target.value) || 1000)} /></label>
+          )}
           <label>Seed (optional) <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" /></label>
         </div>
       </div>

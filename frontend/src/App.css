@@ -13,7 +13,7 @@ body {
 }
 
 #root {
-  max-width: 720px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -203,4 +203,144 @@ select, input[type="number"] {
 
 .grid-viz {
   margin: 1.5rem 0;
+}
+
+/* Multi-condition toggle */
+.multi-condition-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.multi-condition-toggle input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+/* Condition cards */
+.condition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.condition-card {
+  background: #f9fafb;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.condition-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.condition-number {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #2563eb;
+}
+
+.condition-remove-btn {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.condition-remove-btn:hover {
+  color: #991b1b;
+}
+
+.condition-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.condition-label-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.condition-label-input input[type="text"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  max-width: 240px;
+}
+
+.condition-add-btn {
+  padding: 0.5rem 1rem;
+  background: #f0f9ff;
+  color: #2563eb;
+  border: 1px dashed #93c5fd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+}
+
+.condition-add-btn:hover {
+  background: #dbeafe;
+}
+
+/* Cumulative record chart */
+.chart-container {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.chart-container h3 {
+  margin-bottom: 0.75rem;
+}
+
+/* Condition breakdown table */
+.condition-breakdown {
+  margin: 1.5rem 0;
+}
+
+.condition-breakdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.condition-breakdown th,
+.condition-breakdown td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #eee;
+}
+
+.condition-breakdown th {
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.action-count-chip {
+  display: inline-block;
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  margin-right: 0.35rem;
+  margin-bottom: 0.15rem;
 }

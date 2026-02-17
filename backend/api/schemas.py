@@ -38,6 +38,14 @@ class GridConfig(BaseModel):
     start_col: int = Field(0, ge=0, description="Start column position")
 
 
+class ConditionConfig(BaseModel):
+    label: str = Field(..., description="Condition label (e.g. 'Baseline', 'Extinction')")
+    max_steps: int = Field(1000, ge=1, le=100000, description="Steps for this condition")
+    schedule_a: Optional[ScheduleConfig] = Field(None, description="Schedule A (two-choice)")
+    schedule_b: Optional[ScheduleConfig] = Field(None, description="Schedule B (two-choice)")
+    schedule: Optional[ScheduleConfig] = Field(None, description="Lever schedule (grid)")
+
+
 class SimulationRequest(BaseModel):
     environment: str = Field(..., description="Environment type: two_choice or grid_chamber")
     algorithm: str = Field(..., description="Algorithm: q_learning, etbd, or mpr")
@@ -57,6 +65,12 @@ class SimulationRequest(BaseModel):
     # Grid config (only for grid_chamber)
     grid_config: Optional[GridConfig] = None
 
+    # Multi-condition experiment (overrides top-level schedule/max_steps when non-empty)
+    conditions: Optional[list[ConditionConfig]] = Field(
+        None, max_length=6,
+        description="Up to 6 conditions for multi-phase experiments"
+    )
+
 
 class StepData(BaseModel):
     step: int
@@ -64,9 +78,22 @@ class StepData(BaseModel):
     action: str
     reinforced: bool
     schedule_id: str
+    condition: int = Field(1, description="Condition number (1-indexed)")
+
+
+class ConditionSummary(BaseModel):
+    condition: int
+    label: str
+    start_step: int
+    end_step: int
+    total_steps: int
+    total_reinforcements: int
+    reinforcement_rate: float
+    action_counts: dict[str, int]
 
 
 class SimulationResponse(BaseModel):
     config: dict
     summary: dict
     steps: list[StepData]
+    condition_summaries: list[ConditionSummary] = Field(default_factory=list)
