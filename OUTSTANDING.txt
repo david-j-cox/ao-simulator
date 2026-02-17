@@ -1,0 +1,127 @@
+AO Simulator — Outstanding Work & Roadmap
+==========================================
+Last updated: 2026-02-17
+
+
+=== INFRASTRUCTURE & DEVOPS ===
+
+[ ] Pin backend Python dependencies (requirements.txt has no versions)
+[ ] Add .env.example with documented environment variables
+    - Backend port, CORS origins, log level
+    - Frontend API base URL
+[ ] Dockerfile + docker-compose for single-command local setup
+[ ] GitHub Actions CI pipeline
+    - Run backend unit tests (pytest)
+    - Run frontend build check (vite build)
+    - Run e2e tests (Playwright)
+    - Lint checks (eslint + ruff/flake8)
+[ ] Hosted deployment setup (cloud platform TBD)
+    - Production Dockerfile with frontend static build served by backend
+    - Health check endpoint
+    - Environment-based config (dev vs prod CORS, debug, etc.)
+[ ] Add CONTRIBUTING.md with setup instructions, coding standards, PR process
+[ ] Add LICENSE file (MIT per README, but no LICENSE file exists yet)
+
+
+=== TESTING ===
+
+[ ] Backend unit tests (pytest)
+    - Schedule classes (FR, VR, FI, VI edge cases)
+    - Agent behavior (Q-learning convergence, ETBD selection, MPR coupling)
+    - Runner single-condition and multi-condition logic
+    - API route validation (bad inputs, missing fields, boundary values)
+    - CSV/JSON output format correctness
+[ ] Frontend unit tests (vitest or similar)
+    - Component rendering
+    - buildRequest() output for single and multi-condition
+    - Cumulative record data computation
+[ ] Expand e2e tests
+    - All 3 algorithms x 2 environments (6 combos)
+    - CSV/JSON download content verification
+    - Error handling (invalid config, server down)
+    - Large step count performance
+
+
+=== NEW ALGORITHMS ===
+
+[ ] Rescorla-Wagner model (classical conditioning / associative learning)
+[ ] Actor-Critic (reinforcement learning with separate policy and value)
+[ ] Linear Operator Model (Bush & Mosteller stimulus-response learning)
+[ ] Identify and document the agent base class interface for contributors
+
+
+=== NEW ENVIRONMENTS ===
+
+[ ] Delayed reinforcement chamber (configurable delay between response and reinforcer)
+[ ] Multiple-schedule environment (signaled schedule components, e.g. mult VI EXT)
+[ ] Concurrent-chains procedure (initial link -> terminal link structure)
+[ ] Progressive ratio environment (ratio requirement increases after each reinforcer)
+[ ] Free-operant avoidance (Sidman avoidance paradigm)
+
+
+=== DATA ANALYSIS FEATURES ===
+
+[ ] Matching law analysis
+    - Generalized matching equation fit (log response ratio vs log reinforcement ratio)
+    - Sensitivity (a) and bias (b) parameters with standard errors
+    - Per-condition and across-condition analysis
+[ ] Rate calculations
+    - Response rate over time (moving window)
+    - Reinforcement rate over time
+    - Changeover rate between alternatives
+[ ] Statistical summaries
+    - Mean, SD, median response counts per condition
+    - Inter-response time (IRT) distributions
+    - Post-reinforcement pause duration
+[ ] Curve fitting
+    - Hyperbolic discounting fits
+    - Demand curve analysis (if consumption paradigm added)
+[ ] Export enhancements
+    - Summary statistics in CSV/JSON downloads
+    - Per-condition CSV sheets
+    - R-ready / Python-ready formatted output
+
+
+=== FRONTEND ENHANCEMENTS ===
+
+[ ] Response rate chart (responses/min over time, complementing cumulative record)
+[ ] Save/load experiment configurations (localStorage or file import/export)
+[ ] Comparison mode: run same config with different algorithms side-by-side
+[ ] Parameter sweep mode: vary one parameter across a range, plot outcome
+[ ] Code splitting (vite build chunk is 564KB, should split recharts)
+[ ] Mobile-responsive layout
+[ ] Dark mode support
+[ ] Accessibility audit (keyboard navigation, screen reader labels)
+
+
+=== DOCUMENTATION ===
+
+[ ] Architecture doc explaining backend/frontend interaction
+[ ] Algorithm documentation (theory, parameters, expected behavior)
+[ ] Environment documentation (state spaces, action spaces, reinforcement mechanics)
+[ ] API reference (auto-generated from FastAPI /docs, but also static docs)
+[ ] User guide with example experiments
+    - Matching law demonstration
+    - Behavioral momentum demonstration
+    - Resurgence demonstration
+[ ] Update README with:
+    - Multi-condition experiment instructions
+    - Cumulative record chart description
+    - Roadmap section linking to this file
+
+
+=== KNOWN ISSUES ===
+
+[ ] Port 8000 conflict on some systems (consider configurable port)
+[ ] CORS set to allow_origins=["*"] (fine for dev, restrict for production)
+[ ] 5 moderate npm audit vulnerabilities (review and address)
+[ ] Vite proxy hardcoded to localhost:8000 (should use env var)
+[ ] Multi-condition: toggling off then on resets all conditions (by design,
+    but could optionally preserve them)
+
+
+=== MERGE STRATEGY ===
+
+[ ] Merge dev -> main when current feature set is stable
+[ ] Establish branch protection rules on main (require PR, require CI pass)
+[ ] Tag releases with semantic versioning (v0.1.0 for initial public release)
