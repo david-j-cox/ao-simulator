@@ -44,7 +44,7 @@ export default function ConfigPage({ onResults }) {
 
   const handleMultiConditionToggle = (checked) => {
     setMultiCondition(checked);
-    if (checked && conditions.length === 0) {
+    if (checked) {
       // Seed initial condition from current schedule/max_steps values
       const initial = { label: 'Condition 1', max_steps: maxSteps };
       if (environment === 'two_choice') {
