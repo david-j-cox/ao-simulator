@@ -242,6 +242,114 @@ async function run() {
   const gridBreakdown = page.locator('.condition-breakdown');
   assert(await gridBreakdown.count() === 1, 'Grid condition breakdown renders');
 
+  // Go back for next tests
+  await page.click('.back-btn');
+  await page.waitForSelector('.config-page');
+
+  // ============================================================
+  // TEST 8: All 3 algorithms x 2 environments (6 combos)
+  // ============================================================
+  console.log('\n=== Test 8: All algo/env combos ===');
+
+  const algos = ['q_learning', 'etbd', 'mpr'];
+  const envs = ['two_choice', 'grid_chamber'];
+
+  for (const env of envs) {
+    for (const algo of algos) {
+      await page.goto(BASE);
+      await page.waitForSelector('.config-page');
+
+      // Select environment
+      const envSelect = page.locator('select').first();
+      await envSelect.selectOption(env);
+
+      // Select algorithm
+      const algoSelect = page.locator('select').nth(1);
+      await algoSelect.selectOption(algo);
+
+      // Run
+      await page.click('.run-btn');
+      await page.waitForSelector('.results-page', { timeout: 60000 });
+
+      const hasChart = await page.locator('.chart-container').count();
+      assert(hasChart === 1, `${algo}/${env}: results page renders`);
+
+      await page.click('.back-btn');
+      await page.waitForSelector('.config-page');
+    }
+  }
+
+  // ============================================================
+  // TEST 9: CSV download content verification
+  // ============================================================
+  console.log('\n=== Test 9: CSV download verification ===');
+
+  const csvReq = {
+    environment: 'two_choice',
+    algorithm: 'q_learning',
+    max_steps: 20,
+    seed: 42,
+    schedule_a: { type: 'FR', value: 5 },
+    schedule_b: { type: 'FR', value: 5 },
+  };
+
+  const csvResp = await page.evaluate(async (body) => {
+    const res = await fetch('/api/simulate/csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return { ok: res.ok, contentType: res.headers.get('content-type'), text: await res.text() };
+  }, csvReq);
+
+  assert(csvResp.ok, 'CSV endpoint returns OK');
+  assert(csvResp.contentType.includes('text/csv'), 'CSV content-type is text/csv');
+
+  const csvLines = csvResp.text.trim().split('\n');
+  assert(csvLines[0].includes('step'), 'CSV header has step column');
+  assert(csvLines[0].includes('action'), 'CSV header has action column');
+  assert(csvLines.length === 21, `CSV has header + 20 rows (got ${csvLines.length})`);
+
+  // ============================================================
+  // TEST 10: JSON download content verification
+  // ============================================================
+  console.log('\n=== Test 10: JSON download verification ===');
+
+  const jsonReq = { ...csvReq };
+  const jsonResp = await page.evaluate(async (body) => {
+    const res = await fetch('/api/simulate/json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return { ok: res.ok, contentType: res.headers.get('content-type'), text: await res.text() };
+  }, jsonReq);
+
+  assert(jsonResp.ok, 'JSON endpoint returns OK');
+  assert(jsonResp.contentType.includes('application/json'), 'JSON content-type correct');
+
+  const jsonData = JSON.parse(jsonResp.text);
+  assert('config' in jsonData, 'JSON has config key');
+  assert('summary' in jsonData, 'JSON has summary key');
+  assert('steps' in jsonData, 'JSON has steps key');
+  assert(jsonData.steps.length === 20, `JSON has 20 steps (got ${jsonData.steps.length})`);
+
+  // ============================================================
+  // TEST 11: Error handling (missing required fields)
+  // ============================================================
+  console.log('\n=== Test 11: Error handling ===');
+
+  const errResp = await page.evaluate(async () => {
+    const res = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    return { status: res.status };
+  });
+
+  assert(errResp.status === 422, `Empty request returns 422 (got ${errResp.status})`);
+
   // ============================================================
   // SUMMARY
   // ============================================================

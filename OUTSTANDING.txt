@@ -25,21 +25,26 @@ Last updated: 2026-02-17
 
 === TESTING ===
 
-[ ] Backend unit tests (pytest)
-    - Schedule classes (FR, VR, FI, VI edge cases)
-    - Agent behavior (Q-learning convergence, ETBD selection, MPR coupling)
-    - Runner single-condition and multi-condition logic
-    - API route validation (bad inputs, missing fields, boundary values)
-    - CSV/JSON output format correctness
-[ ] Frontend unit tests (vitest or similar)
-    - Component rendering
-    - buildRequest() output for single and multi-condition
-    - Cumulative record data computation
-[ ] Expand e2e tests
+[x] Backend unit tests (pytest) — 189 tests
+    -> backend/tests/ (14 test files)
+    - test_schedules.py: FR, VR, FI, VI edge cases + factory
+    - test_etbd_*.py: fitness, selection, recombination, mutation, organism
+    - test_agent_*.py: Q-learning, ETBD, MPR agents
+    - test_env_*.py: TwoChoice, GridChamber environments
+    - test_runner.py: single-condition and multi-condition logic
+    - test_api_schemas.py: Pydantic validation
+    - test_api_routes.py: all endpoints, error handling, CSV/JSON format
+[x] Frontend unit tests (vitest) — 15 tests
+    -> frontend/src/*/__tests__/ (4 test files)
+    - client.test.js: API client mock fetch, download triggers
+    - CumulativeRecordChart.test.jsx: two-choice/grid rendering, boundaries
+    - GridVisualization.test.jsx: heatmap rendering, null handling
+    - ConfigPage.test.jsx: form rendering, multi-condition toggle
+[x] Expand e2e tests
+    -> tests/e2e/multi-condition.spec.mjs
     - All 3 algorithms x 2 environments (6 combos)
     - CSV/JSON download content verification
-    - Error handling (invalid config, server down)
-    - Large step count performance
+    - Error handling (missing fields → 422)
 
 
 === NEW ALGORITHMS ===
