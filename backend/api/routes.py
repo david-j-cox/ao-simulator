@@ -29,27 +29,30 @@ def _build_environment(req: SimulationRequest):
             max_steps=req.max_steps,
         )
     elif req.environment == "grid_chamber":
-        if not req.schedule:
-            raise HTTPException(400, "grid_chamber requires schedule")
         gc = req.grid_config
-        kwargs = {}
-        if gc:
-            kwargs = dict(
-                rows=gc.rows, cols=gc.cols,
-                lever_pos=(gc.lever_row, gc.lever_col),
-                start_pos=(gc.start_row, gc.start_col),
-            )
+        if not gc or not gc.levers:
+            raise HTTPException(400, "grid_chamber requires grid_config with levers")
+        levers = [
+            {
+                "pos": (lc.row, lc.col),
+                "schedule": create_schedule(lc.schedule.type, lc.schedule.value),
+                "magnitude": lc.magnitude,
+            }
+            for lc in gc.levers
+        ]
         return GridChamberEnvironment(
-            schedule=create_schedule(req.schedule.type, req.schedule.value),
+            rows=gc.rows,
+            cols=gc.cols,
+            levers=levers,
             max_steps=req.max_steps,
-            **kwargs,
+            start_pos=(gc.start_row, gc.start_col),
         )
     else:
         raise HTTPException(400, f"Unknown environment: {req.environment}")
 
 
 def _build_environment_for_condition(req: SimulationRequest, condition):
-    """Factory: create the environment from a ConditionConfig."""
+    """Factory: create the environment from first condition + grid_config."""
     if req.environment == "two_choice":
         if not condition.schedule_a or not condition.schedule_b:
             raise HTTPException(400, f"Condition '{condition.label}': two_choice requires schedule_a and schedule_b")
@@ -59,20 +62,26 @@ def _build_environment_for_condition(req: SimulationRequest, condition):
             max_steps=condition.max_steps,
         )
     elif req.environment == "grid_chamber":
-        if not condition.schedule:
-            raise HTTPException(400, f"Condition '{condition.label}': grid_chamber requires schedule")
         gc = req.grid_config
-        kwargs = {}
-        if gc:
-            kwargs = dict(
-                rows=gc.rows, cols=gc.cols,
-                lever_pos=(gc.lever_row, gc.lever_col),
-                start_pos=(gc.start_row, gc.start_col),
-            )
+        if not gc or not gc.levers:
+            raise HTTPException(400, f"Condition '{condition.label}': grid_chamber requires grid_config with levers")
+        if not condition.lever_schedules:
+            raise HTTPException(400, f"Condition '{condition.label}': grid_chamber requires lever_schedules")
+        # Positions come from grid_config.levers; schedules+magnitudes from condition
+        levers = []
+        for i, lc in enumerate(gc.levers):
+            ls = condition.lever_schedules[i]
+            levers.append({
+                "pos": (lc.row, lc.col),
+                "schedule": create_schedule(ls.schedule.type, ls.schedule.value),
+                "magnitude": ls.magnitude,
+            })
         return GridChamberEnvironment(
-            schedule=create_schedule(condition.schedule.type, condition.schedule.value),
+            rows=gc.rows,
+            cols=gc.cols,
+            levers=levers,
             max_steps=condition.max_steps,
-            **kwargs,
+            start_pos=(gc.start_row, gc.start_col),
         )
     else:
         raise HTTPException(400, f"Unknown environment: {req.environment}")
@@ -86,7 +95,9 @@ def _swap_env_schedules(env, cond_dict):
         env.schedule_a = create_schedule(cond_dict["schedule_a"]["type"], cond_dict["schedule_a"]["value"])
         env.schedule_b = create_schedule(cond_dict["schedule_b"]["type"], cond_dict["schedule_b"]["value"])
     elif isinstance(env, GridChamberEnvironment):
-        env.schedule = create_schedule(cond_dict["schedule"]["type"], cond_dict["schedule"]["value"])
+        for i, ls in enumerate(cond_dict["lever_schedules"]):
+            env.levers[i]["schedule"] = create_schedule(ls["schedule"]["type"], ls["schedule"]["value"])
+            env.levers[i]["magnitude"] = ls["magnitude"]
 
 
 def _build_agent(req: SimulationRequest):
@@ -121,15 +132,15 @@ def _build_agent(req: SimulationRequest):
         sched_type = "VI"
         if req.environment == "two_choice" and req.schedule_a:
             sched_type = req.schedule_a.type
-        elif req.environment == "grid_chamber" and req.schedule:
-            sched_type = req.schedule.type
+        elif req.environment == "grid_chamber" and req.grid_config and req.grid_config.levers:
+            sched_type = req.grid_config.levers[0].schedule.type
         # Fall back to first condition's schedule when top-level is None
         elif req.conditions:
             c0 = req.conditions[0]
             if req.environment == "two_choice" and c0.schedule_a:
                 sched_type = c0.schedule_a.type
-            elif req.environment == "grid_chamber" and c0.schedule:
-                sched_type = c0.schedule.type
+            elif req.environment == "grid_chamber" and c0.lever_schedules:
+                sched_type = c0.lever_schedules[0].schedule.type
         return MPRAgent(
             environment_type=req.environment,
             initial_arousal=p.get("initial_arousal", 1.0),
@@ -159,7 +170,10 @@ def _run_simulation(req: SimulationRequest):
                 d["schedule_a"] = {"type": c.schedule_a.type, "value": c.schedule_a.value}
                 d["schedule_b"] = {"type": c.schedule_b.type, "value": c.schedule_b.value}
             else:
-                d["schedule"] = {"type": c.schedule.type, "value": c.schedule.value}
+                d["lever_schedules"] = [
+                    {"schedule": {"type": ls.schedule.type, "value": ls.schedule.value}, "magnitude": ls.magnitude}
+                    for ls in c.lever_schedules
+                ]
             cond_dicts.append(d)
 
         return runner.run_multi_condition(
@@ -193,7 +207,9 @@ async def simulate_csv(req: SimulationRequest):
     result = _run_simulation(req)
 
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["step", "state", "action", "reinforced", "schedule_id", "condition"])
+    writer = csv.DictWriter(output, fieldnames=[
+        "step", "state", "action", "reinforced", "schedule_id", "condition", "reinforcement_magnitude",
+    ])
     writer.writeheader()
     for step in result.steps:
         writer.writerow(step)

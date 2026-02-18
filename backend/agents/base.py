@@ -13,7 +13,7 @@ class AbstractAgent(ABC):
         pass
 
     @abstractmethod
-    def update(self, state: Any, action: str, reinforced: bool, next_state: Any):
+    def update(self, state: Any, action: str, reinforced: bool, next_state: Any, magnitude: float = 1.0):
         """Update agent after observing outcome."""
         pass
 

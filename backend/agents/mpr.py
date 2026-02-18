@@ -86,10 +86,10 @@ class MPRAgent(AbstractAgent):
             idx = np.random.choice(len(available_actions), p=probs)
             return available_actions[idx]
 
-    def update(self, state: Any, action: str, reinforced: bool, next_state: Any):
+    def update(self, state: Any, action: str, reinforced: bool, next_state: Any, magnitude: float = 1.0):
         self.total_steps += 1
         self.action_counts[action] = self.action_counts.get(action, 0) + 1
-        if reinforced:
+        if reinforced and magnitude > 0:
             self.reinforcement_counts[action] = self.reinforcement_counts.get(action, 0) + 1
 
     def reset(self):

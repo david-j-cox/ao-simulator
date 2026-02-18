@@ -35,9 +35,34 @@ def _grid_req(algo="q_learning", seed=42, max_steps=50):
         "algorithm": algo,
         "max_steps": max_steps,
         "seed": seed,
-        "schedule": {"type": "FR", "value": 5},
-        "grid_config": {"rows": 5, "cols": 5, "lever_row": 2, "lever_col": 2,
-                        "start_row": 0, "start_col": 0},
+        "grid_config": {
+            "rows": 5, "cols": 5,
+            "start_row": 0, "start_col": 0,
+            "levers": [
+                {"row": 2, "col": 2, "schedule": {"type": "FR", "value": 5}, "magnitude": 1.0},
+            ],
+        },
+    }
+    if algo == "mpr":
+        req["mpr_params"] = {"initial_arousal": 1.0, "activation_decay": 0.95,
+                              "coupling_floor": 0.01, "temperature": 1.0}
+    return req
+
+
+def _grid_multi_lever_req(algo="q_learning", seed=42, max_steps=50):
+    req = {
+        "environment": "grid_chamber",
+        "algorithm": algo,
+        "max_steps": max_steps,
+        "seed": seed,
+        "grid_config": {
+            "rows": 5, "cols": 5,
+            "start_row": 0, "start_col": 0,
+            "levers": [
+                {"row": 1, "col": 1, "schedule": {"type": "FR", "value": 3}, "magnitude": 1.0},
+                {"row": 3, "col": 3, "schedule": {"type": "VI", "value": 10}, "magnitude": 2.5},
+            ],
+        },
     }
     if algo == "mpr":
         req["mpr_params"] = {"initial_arousal": 1.0, "activation_decay": 0.95,
@@ -61,6 +86,12 @@ class TestSimulateEndpoint:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("algo", ["q_learning", "etbd", "mpr"])
+    async def test_grid_multi_lever_200(self, client, algo):
+        resp = await client.post("/api/simulate", json=_grid_multi_lever_req(algo))
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
     async def test_seeded_reproducibility(self, client):
         r1 = await client.post("/api/simulate", json=_two_choice_req(seed=99))
         r2 = await client.post("/api/simulate", json=_two_choice_req(seed=99))
@@ -80,6 +111,12 @@ class TestSimulateEndpoint:
         assert "summary" in data
         assert "steps" in data
         assert "condition_summaries" in data
+
+    @pytest.mark.asyncio
+    async def test_step_has_magnitude(self, client):
+        resp = await client.post("/api/simulate", json=_grid_req())
+        data = resp.json()
+        assert "reinforcement_magnitude" in data["steps"][0]
 
     @pytest.mark.asyncio
     async def test_multi_condition(self, client):
@@ -111,17 +148,55 @@ class TestSimulateEndpoint:
             "algorithm": "q_learning",
             "max_steps": 100,
             "seed": 42,
-            "grid_config": {"rows": 3, "cols": 3, "lever_row": 1, "lever_col": 1,
-                            "start_row": 0, "start_col": 0},
+            "grid_config": {
+                "rows": 3, "cols": 3,
+                "start_row": 0, "start_col": 0,
+                "levers": [
+                    {"row": 1, "col": 1, "schedule": {"type": "FR", "value": 3}, "magnitude": 1.0},
+                ],
+            },
             "conditions": [
                 {"label": "C1", "max_steps": 20,
-                 "schedule": {"type": "FR", "value": 3}},
+                 "lever_schedules": [{"schedule": {"type": "FR", "value": 3}, "magnitude": 1.0}]},
                 {"label": "C2", "max_steps": 20,
-                 "schedule": {"type": "VI", "value": 5}},
+                 "lever_schedules": [{"schedule": {"type": "VI", "value": 5}, "magnitude": 0.5}]},
             ],
         }
         resp = await client.post("/api/simulate", json=req)
         assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_multi_condition_grid_multi_lever(self, client):
+        req = {
+            "environment": "grid_chamber",
+            "algorithm": "q_learning",
+            "max_steps": 100,
+            "seed": 42,
+            "grid_config": {
+                "rows": 5, "cols": 5,
+                "start_row": 0, "start_col": 0,
+                "levers": [
+                    {"row": 1, "col": 1, "schedule": {"type": "FR", "value": 3}, "magnitude": 1.0},
+                    {"row": 3, "col": 3, "schedule": {"type": "VI", "value": 10}, "magnitude": 2.0},
+                ],
+            },
+            "conditions": [
+                {"label": "C1", "max_steps": 20,
+                 "lever_schedules": [
+                     {"schedule": {"type": "FR", "value": 3}, "magnitude": 1.0},
+                     {"schedule": {"type": "VI", "value": 10}, "magnitude": 2.0},
+                 ]},
+                {"label": "C2", "max_steps": 20,
+                 "lever_schedules": [
+                     {"schedule": {"type": "FR", "value": 1}, "magnitude": 0.0},
+                     {"schedule": {"type": "VI", "value": 5}, "magnitude": 3.0},
+                 ]},
+            ],
+        }
+        resp = await client.post("/api/simulate", json=req)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["condition_summaries"]) == 2
 
 
 # ── CSV endpoint ────────────────────────────────────────────────────
@@ -140,6 +215,7 @@ class TestCSVEndpoint:
         assert "step" in header
         assert "action" in header
         assert "reinforced" in header
+        assert "reinforcement_magnitude" in header
 
     @pytest.mark.asyncio
     async def test_row_count(self, client):
@@ -244,7 +320,7 @@ class TestRootEndpoint:
 
 class TestFactoryBehavior:
     @pytest.mark.asyncio
-    async def test_grid_missing_schedule(self, client):
+    async def test_grid_missing_grid_config(self, client):
         req = {"environment": "grid_chamber", "algorithm": "q_learning"}
         resp = await client.post("/api/simulate", json=req)
         assert resp.status_code == 400

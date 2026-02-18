@@ -51,12 +51,12 @@ class QLearningAgent(AbstractAgent):
         best_actions = [a for a in available_actions if q_values.get(a, 0.0) == max_q]
         return np.random.choice(best_actions)
 
-    def update(self, state: Any, action: str, reinforced: bool, next_state: Any):
+    def update(self, state: Any, action: str, reinforced: bool, next_state: Any, magnitude: float = 1.0):
         self.history.append(action)
         state_key = self._get_state_key(state)
         next_state_key = self._get_state_key(next_state)
 
-        reward = 1.0 if reinforced else 0.0
+        reward = magnitude if reinforced else 0.0
         next_q_values = self.q_table[next_state_key]
         max_next_q = max(next_q_values.values()) if next_q_values else 0.0
 

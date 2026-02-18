@@ -29,13 +29,28 @@ class MPRParams(BaseModel):
     temperature: float = Field(1.0, gt=0, description="Softmax temperature (grid only)")
 
 
+class LeverConfig(BaseModel):
+    row: int = Field(0, ge=0, description="Lever row position")
+    col: int = Field(0, ge=0, description="Lever column position")
+    schedule: ScheduleConfig
+    magnitude: float = Field(1.0, ge=0, description="Reinforcement magnitude (0 = extinction)")
+
+
 class GridConfig(BaseModel):
     rows: int = Field(5, ge=2, le=20, description="Grid rows")
     cols: int = Field(5, ge=2, le=20, description="Grid columns")
-    lever_row: int = Field(2, ge=0, description="Lever row position")
-    lever_col: int = Field(2, ge=0, description="Lever column position")
+    levers: list[LeverConfig] = Field(
+        default_factory=lambda: [LeverConfig(row=2, col=2, schedule=ScheduleConfig(type="FR", value=5))],
+        min_length=1, max_length=8,
+        description="Up to 8 levers with position, schedule, and magnitude",
+    )
     start_row: int = Field(0, ge=0, description="Start row position")
     start_col: int = Field(0, ge=0, description="Start column position")
+
+
+class LeverScheduleConfig(BaseModel):
+    schedule: ScheduleConfig
+    magnitude: float = Field(1.0, ge=0, description="Reinforcement magnitude (0 = extinction)")
 
 
 class ConditionConfig(BaseModel):
@@ -43,7 +58,8 @@ class ConditionConfig(BaseModel):
     max_steps: int = Field(1000, ge=1, le=100000, description="Steps for this condition")
     schedule_a: Optional[ScheduleConfig] = Field(None, description="Schedule A (two-choice)")
     schedule_b: Optional[ScheduleConfig] = Field(None, description="Schedule B (two-choice)")
-    schedule: Optional[ScheduleConfig] = Field(None, description="Lever schedule (grid)")
+    lever_schedules: Optional[list[LeverScheduleConfig]] = Field(
+        None, max_length=8, description="Per-lever schedule+magnitude overrides (grid)")
 
 
 class SimulationRequest(BaseModel):
@@ -52,17 +68,16 @@ class SimulationRequest(BaseModel):
     max_steps: int = Field(1000, ge=1, le=100000, description="Maximum simulation steps")
     seed: Optional[int] = Field(None, description="Random seed for reproducibility")
 
-    # Schedule configs
+    # Schedule configs (two-choice only)
     schedule_a: Optional[ScheduleConfig] = Field(None, description="Schedule A (two-choice)")
     schedule_b: Optional[ScheduleConfig] = Field(None, description="Schedule B (two-choice)")
-    schedule: Optional[ScheduleConfig] = Field(None, description="Lever schedule (grid)")
 
     # Algorithm params (only one should be set based on algorithm choice)
     q_learning_params: Optional[QLearningParams] = None
     etbd_params: Optional[ETBDParams] = None
     mpr_params: Optional[MPRParams] = None
 
-    # Grid config (only for grid_chamber)
+    # Grid config (only for grid_chamber — includes levers with schedules)
     grid_config: Optional[GridConfig] = None
 
     # Multi-condition experiment (overrides top-level schedule/max_steps when non-empty)
@@ -79,6 +94,7 @@ class StepData(BaseModel):
     reinforced: bool
     schedule_id: str
     condition: int = Field(1, description="Condition number (1-indexed)")
+    reinforcement_magnitude: float = Field(0.0, description="Reinforcement magnitude")
 
 
 class ConditionSummary(BaseModel):

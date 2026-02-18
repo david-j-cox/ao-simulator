@@ -39,6 +39,7 @@ class TestRunnerSingleCondition:
         assert "reinforced" in step
         assert "schedule_id" in step
         assert "condition" in step
+        assert "reinforcement_magnitude" in step
 
     def test_seeded_deterministic(self):
         def _run():
@@ -77,11 +78,41 @@ class TestRunnerSingleCondition:
         assert result.summary["reinforcement_rate"] == pytest.approx(expected_rate)
 
     def test_visit_counts_for_grid(self):
-        env = GridChamberEnvironment(schedule=FR(1), max_steps=20)
+        levers = [{"pos": (2, 2), "schedule": FR(1), "magnitude": 1.0}]
+        env = GridChamberEnvironment(levers=levers, max_steps=20)
         agent = QLearningAgent(use_history_state=False)
         runner = SimulationRunner(agent, env)
         result = runner.run(seed=42)
         assert "visit_counts" in result.summary
+
+    def test_magnitude_in_step_log(self):
+        """Step logs should contain reinforcement_magnitude."""
+        env = TwoChoiceEnvironment(FR(1), FR(1), max_steps=10)
+        agent = QLearningAgent()
+        runner = SimulationRunner(agent, env)
+        result = runner.run(seed=42)
+        # All steps should have the field
+        for step in result.steps:
+            assert "reinforcement_magnitude" in step
+        # At least one reinforced step should have magnitude > 0
+        reinforced = [s for s in result.steps if s["reinforced"]]
+        assert any(s["reinforcement_magnitude"] > 0 for s in reinforced)
+
+    def test_magnitude_passed_to_agent(self):
+        """The runner should pass magnitude to agent.update()."""
+        env = TwoChoiceEnvironment(FR(1), FR(1), max_steps=5)
+        agent = QLearningAgent()
+        # Spy on the update method
+        original_update = agent.update
+        calls = []
+        def spy_update(state, action, reinforced, next_state, magnitude=1.0):
+            calls.append(magnitude)
+            return original_update(state, action, reinforced, next_state, magnitude)
+        agent.update = spy_update
+        runner = SimulationRunner(agent, env)
+        runner.run(seed=42)
+        # All 5 steps should have called update with some magnitude value
+        assert len(calls) == 5
 
 
 class TestRunnerMultiCondition:

@@ -21,7 +21,7 @@ function ScheduleInput({ label, schedule, onChange }) {
   );
 }
 
-export default function ScheduleConfig({ environment, scheduleA, scheduleB, schedule, onChangeA, onChangeB, onChange }) {
+export default function ScheduleConfig({ environment, scheduleA, scheduleB, onChangeA, onChangeB }) {
   if (environment === 'two_choice') {
     return (
       <div className="config-section">
@@ -31,10 +31,6 @@ export default function ScheduleConfig({ environment, scheduleA, scheduleB, sche
       </div>
     );
   }
-  return (
-    <div className="config-section">
-      <h3>Lever Schedule</h3>
-      <ScheduleInput label="Schedule" schedule={schedule} onChange={onChange} />
-    </div>
-  );
+  // Grid schedules are now configured in GridConfig via levers
+  return null;
 }

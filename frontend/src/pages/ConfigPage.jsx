@@ -10,7 +10,10 @@ import { runSimulation } from '../api/client';
 const DEFAULT_Q = { alpha: 0.1, gamma: 0.9, epsilon: 0.1, history_window: 3 };
 const DEFAULT_ETBD = { population_size: 100, mutation_rate: 0.1, fitness_decay: 0.95 };
 const DEFAULT_MPR = { initial_arousal: 1.0, activation_decay: 0.95, coupling_floor: 0.01, temperature: 1.0 };
-const DEFAULT_GRID = { rows: 5, cols: 5, lever_row: 2, lever_col: 2, start_row: 0, start_col: 0 };
+const DEFAULT_GRID = {
+  rows: 5, cols: 5, start_row: 0, start_col: 0,
+  levers: [{ row: 2, col: 2, schedule: { type: 'FR', value: 5 }, magnitude: 1.0 }],
+};
 
 export default function ConfigPage({ onResults }) {
   const [environment, setEnvironment] = useState('two_choice');
@@ -19,7 +22,6 @@ export default function ConfigPage({ onResults }) {
   const [seed, setSeed] = useState('');
   const [scheduleA, setScheduleA] = useState({ type: 'VI', value: 30 });
   const [scheduleB, setScheduleB] = useState({ type: 'VI', value: 60 });
-  const [schedule, setSchedule] = useState({ type: 'FR', value: 5 });
   const [gridConfig, setGridConfig] = useState(DEFAULT_GRID);
   const [qParams, setQParams] = useState(DEFAULT_Q);
   const [etbdParams, setEtbdParams] = useState(DEFAULT_ETBD);
@@ -45,13 +47,16 @@ export default function ConfigPage({ onResults }) {
   const handleMultiConditionToggle = (checked) => {
     setMultiCondition(checked);
     if (checked) {
-      // Seed initial condition from current schedule/max_steps values
       const initial = { label: 'Condition 1', max_steps: maxSteps };
       if (environment === 'two_choice') {
         initial.schedule_a = { ...scheduleA };
         initial.schedule_b = { ...scheduleB };
       } else {
-        initial.schedule = { ...schedule };
+        // Seed from current gridConfig levers
+        initial.lever_schedules = gridConfig.levers.map((lever) => ({
+          schedule: { ...lever.schedule },
+          magnitude: lever.magnitude,
+        }));
       }
       setConditions([initial]);
     }
@@ -71,10 +76,8 @@ export default function ConfigPage({ onResults }) {
       if (environment === 'two_choice') {
         req.schedule_a = scheduleA;
         req.schedule_b = scheduleB;
-      } else {
-        req.schedule = schedule;
-        req.grid_config = gridConfig;
       }
+      // Grid schedules are in grid_config.levers — no separate schedule field needed
     }
 
     if (environment === 'grid_chamber') {
@@ -125,19 +128,20 @@ export default function ConfigPage({ onResults }) {
         <ConditionEditor
           conditions={conditions}
           environment={environment}
+          gridConfig={gridConfig}
           onChange={setConditions}
         />
       ) : (
         <>
-          <ScheduleConfig
-            environment={environment}
-            scheduleA={scheduleA}
-            scheduleB={scheduleB}
-            schedule={schedule}
-            onChangeA={setScheduleA}
-            onChangeB={setScheduleB}
-            onChange={setSchedule}
-          />
+          {environment === 'two_choice' && (
+            <ScheduleConfig
+              environment={environment}
+              scheduleA={scheduleA}
+              scheduleB={scheduleB}
+              onChangeA={setScheduleA}
+              onChangeB={setScheduleB}
+            />
+          )}
         </>
       )}
 

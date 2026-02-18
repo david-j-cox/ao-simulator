@@ -13,6 +13,7 @@ class StepResult:
     reinforced: bool
     schedule_id: str
     done: bool
+    reinforcement_magnitude: float = 0.0
     info: dict = field(default_factory=dict)
 
 

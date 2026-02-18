@@ -62,9 +62,10 @@ class SimulationRunner:
                 "reinforced": result.reinforced,
                 "schedule_id": result.schedule_id,
                 "condition": condition_num,
+                "reinforcement_magnitude": result.reinforcement_magnitude,
             })
 
-            self.agent.update(state, result.action_taken, result.reinforced, result.state)
+            self.agent.update(state, result.action_taken, result.reinforced, result.state, result.reinforcement_magnitude)
             state = result.state
             done = result.done
 

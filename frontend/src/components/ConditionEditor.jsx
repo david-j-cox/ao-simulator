@@ -22,9 +22,47 @@ function ScheduleInput({ label, schedule, onChange }) {
   );
 }
 
+function LeverScheduleInput({ index, leverSchedule, onChange }) {
+  const updateSchedule = (field, val) => {
+    onChange({
+      ...leverSchedule,
+      schedule: { ...leverSchedule.schedule, [field]: field === 'value' ? (parseInt(val) || 1) : val },
+    });
+  };
+
+  return (
+    <div className="lever-schedule-row">
+      <span className="lever-label">Lever {index + 1}</span>
+      <label>Schedule
+        <select value={leverSchedule.schedule.type} onChange={(e) => updateSchedule('type', e.target.value)}>
+          {SCHEDULE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </label>
+      <label>Value
+        <input type="number" min="1" value={leverSchedule.schedule.value} onChange={(e) => updateSchedule('value', e.target.value)} />
+      </label>
+      <label>Magnitude
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          value={leverSchedule.magnitude}
+          onChange={(e) => onChange({ ...leverSchedule, magnitude: parseFloat(e.target.value) || 0 })}
+        />
+      </label>
+    </div>
+  );
+}
+
 function ConditionCard({ condition, index, environment, onChange, onRemove, canRemove }) {
   const update = (field, value) => {
     onChange({ ...condition, [field]: value });
+  };
+
+  const updateLeverSchedule = (leverIdx, updated) => {
+    const next = [...condition.lever_schedules];
+    next[leverIdx] = updated;
+    update('lever_schedules', next);
   };
 
   return (
@@ -74,18 +112,21 @@ function ConditionCard({ condition, index, environment, onChange, onRemove, canR
             />
           </>
         ) : (
-          <ScheduleInput
-            label="Schedule"
-            schedule={condition.schedule}
-            onChange={(s) => update('schedule', s)}
-          />
+          condition.lever_schedules && condition.lever_schedules.map((ls, li) => (
+            <LeverScheduleInput
+              key={li}
+              index={li}
+              leverSchedule={ls}
+              onChange={(updated) => updateLeverSchedule(li, updated)}
+            />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-export function createDefaultCondition(environment, index) {
+export function createDefaultCondition(environment, index, gridConfig) {
   const base = {
     label: `Condition ${index + 1}`,
     max_steps: 1000,
@@ -93,16 +134,21 @@ export function createDefaultCondition(environment, index) {
   if (environment === 'two_choice') {
     base.schedule_a = { type: 'VI', value: 30 };
     base.schedule_b = { type: 'VI', value: 60 };
+  } else if (gridConfig && gridConfig.levers) {
+    base.lever_schedules = gridConfig.levers.map((lever) => ({
+      schedule: { ...lever.schedule },
+      magnitude: lever.magnitude,
+    }));
   } else {
-    base.schedule = { type: 'FR', value: 5 };
+    base.lever_schedules = [{ schedule: { type: 'FR', value: 5 }, magnitude: 1.0 }];
   }
   return base;
 }
 
-export default function ConditionEditor({ conditions, environment, onChange }) {
+export default function ConditionEditor({ conditions, environment, gridConfig, onChange }) {
   const addCondition = () => {
     if (conditions.length >= 6) return;
-    onChange([...conditions, createDefaultCondition(environment, conditions.length)]);
+    onChange([...conditions, createDefaultCondition(environment, conditions.length, gridConfig)]);
   };
 
   const removeCondition = (index) => {

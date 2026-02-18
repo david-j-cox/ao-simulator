@@ -51,6 +51,7 @@ class TwoChoiceEnvironment(AbstractEnvironment):
             reinforced=reinforced,
             schedule_id=schedule_id,
             done=done,
+            reinforcement_magnitude=1.0 if reinforced else 0.0,
             info={"step": self.step_count},
         )
 

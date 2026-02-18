@@ -72,8 +72,8 @@ class ETBDAgent(AbstractAgent):
         action = phenotype_to_action(phenotype, self.action_map)
         return action
 
-    def update(self, state: Any, action: str, reinforced: bool, next_state: Any):
-        if reinforced:
+    def update(self, state: Any, action: str, reinforced: bool, next_state: Any, magnitude: float = 1.0):
+        if reinforced and magnitude > 0:
             target = action_to_target(action, self.action_map)
             self.organism.reinforce(target)
         else:
